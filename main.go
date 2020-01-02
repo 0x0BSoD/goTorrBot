@@ -14,28 +14,10 @@ func main() {
 
 	var torrent Transmission
 	torrent.http = client
+	torrent.Paused = true
+	torrent.DownloadDir = "/tmp"
 
 	a, _ := torrent.SessionStats()
 	PrettyPrint(a)
-	fmt.Println("=======")
-
-	//b, _ := torrent.AddMagnet()
-	//PrettyPrint(b)
-	//fmt.Println("=======")
-	//
-
-	c, err := torrent.All()
-	if err != nil {
-		panic(err)
-	}
-	PrettyPrint(c)
-	fmt.Println("=======")
-
-	//d, _ := torrent.Start(1)
-	//PrettyPrint(d)
-	//fmt.Println("=======")
-
-	e, _ := torrent.ByID(1)
-	PrettyPrint(e)
 	fmt.Println("=======")
 }

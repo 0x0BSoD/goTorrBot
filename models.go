@@ -27,6 +27,7 @@ type ReqArguments struct {
 	PriorityHigh      []string `json:"priority-high,omitempty"`
 	PriorityLow       []string `json:"priority-low,omitempty"`
 	PriorityNormal    []string `json:"priority-normal,omitempty"`
+	DeleteLocalData   bool     `json:"delete-local-data"`
 }
 
 // Response ===============================
@@ -60,16 +61,20 @@ type Torrent struct {
 		Files         []ArgFiles    `json:"files,omitempty"`
 	} `json:"torrents"`
 }
-type TorrentAdded struct {
-	HashString string `json:"hashString,omitempty"`
-	ID         int    `json:"id,omitempty"`
-	Name       string `json:"name,omitempty"`
+type Added struct {
+	TorrentAdded struct {
+		HashString string `json:"hashString,omitempty"`
+		ID         int    `json:"id,omitempty"`
+		Name       string `json:"name,omitempty"`
+	} `json:"torrent-added"`
 }
 
-type TorrentDuplicate struct {
-	HashString string `json:"hashString,omitempty"`
-	ID         int    `json:"id,omitempty"`
-	Name       string `json:"name,omitempty"`
+type Duplicate struct {
+	TorrentDuplicate struct {
+		HashString string `json:"hashString,omitempty"`
+		ID         int    `json:"id,omitempty"`
+		Name       string `json:"name,omitempty"`
+	} `json:"torrent-duplicate"`
 }
 
 type ArgFiles struct {
