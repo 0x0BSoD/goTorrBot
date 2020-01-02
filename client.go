@@ -152,7 +152,7 @@ func (c *Client) getResponse(method, endpoint string, body []byte) (*http.Respon
 	return resp, nil
 }
 
-func (c *Client) apiCall(p *Parameters) ([]byte, error) {
+func (c *Client) apiCall(p *Request) ([]byte, error) {
 	b, err := json.Marshal(p)
 	if err != nil {
 		return []byte{}, err
@@ -165,69 +165,3 @@ func (c *Client) apiCall(p *Parameters) ([]byte, error) {
 
 	return data, nil
 }
-
-// =====================================================================================================================
-// RPC
-// =====================================================================================================================
-
-func (c *Client) SessionStats() (Statistics, error) {
-	p := &Parameters{
-		Method:    "session-stats",
-		Arguments: Arguments{},
-	}
-
-	data, err := c.apiCall(p)
-	if err != nil {
-		return Statistics{}, err
-	}
-
-	var result Statistics
-	err = json.Unmarshal(data, &result)
-	if err != nil {
-		return Statistics{}, err
-	}
-
-	return result, nil
-}
-
-func (c *Client) TorrentGet() {
-	p := &Parameters{
-		Method: "torrent-get",
-		Arguments: Arguments{
-			Fields: []string{"id", "name", "status", "comment",
-				"error", "errorString", "isFinished",
-				"leftUntilDone", "percentDone",
-				"sizeWhenDone", "startDate",
-				"uploadRatio", "totalSize"},
-		},
-	}
-
-	data, err := c.apiCall(p)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(string(data))
-}
-
-//func (c *Client) TorrentGetId(IDs []int) {
-//	p := &Parameters{
-//		Method: "torrent-get",
-//		Arguments: Arguments{
-//			Fields: []string{"id", "name", "status", "comment",
-//				"error", "errorString", "isFinished",
-//				"leftUntilDone", "percentDone", "errorString",
-//				"sizeWhenDone", "startDate", "addedDate",
-//				"uploadRatio", "totalSize", "peers",
-//				"rateDownload", "rateUpload", "uploadRatio"},
-//			IDs: IDs,
-//		},
-//	}
-//
-//	data, err := c.apiCall(p)
-//	if err != nil {
-//		panic(err)
-//	}
-//
-//	fmt.Println(string(data))
-//}

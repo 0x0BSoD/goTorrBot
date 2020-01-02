@@ -7,11 +7,35 @@ const user = "--"
 const pass = "--"
 
 func main() {
-	c, err := NewClient(srvAddr, user, pass)
+	client, err := NewClient(srvAddr, user, pass)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%+v\n", c)
 
-	c.TorrentGet()
+	var torrent Transmission
+	torrent.http = client
+
+	a, _ := torrent.SessionStats()
+	PrettyPrint(a)
+	fmt.Println("=======")
+
+	//b, _ := torrent.AddMagnet()
+	//PrettyPrint(b)
+	//fmt.Println("=======")
+	//
+
+	c, err := torrent.All()
+	if err != nil {
+		panic(err)
+	}
+	PrettyPrint(c)
+	fmt.Println("=======")
+
+	//d, _ := torrent.Start(1)
+	//PrettyPrint(d)
+	//fmt.Println("=======")
+
+	e, _ := torrent.ByID(1)
+	PrettyPrint(e)
+	fmt.Println("=======")
 }
