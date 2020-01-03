@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"log"
+)
 
 const srvAddr = "http://--:9091/transmission/rpc"
 const user = "--"
@@ -16,8 +18,12 @@ func main() {
 	torrent.http = client
 	torrent.Paused = true
 	torrent.DownloadDir = "/tmp"
+	//torrent.Debug = true
 
-	a, _ := torrent.SessionStats()
+	a, err := torrent.SessionStats()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	PrettyPrint(a)
-	fmt.Println("=======")
 }

@@ -98,7 +98,7 @@ func (c *Client) Post(endpoint string, body []byte) ([]byte, error) {
 		// try again
 		return c.Post(endpoint, body)
 	} else if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("error during post request: %s", err)
+		return nil, fmt.Errorf("error during post request: %s", resp.Status)
 	}
 
 	bodyByte, err := ioutil.ReadAll(resp.Body)

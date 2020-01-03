@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 )
 
@@ -15,9 +16,29 @@ type Transmission struct {
 	http        *Client
 	DownloadDir string
 	Paused      bool
+	Debug       bool
 }
 
-func ReturnArguments(res Response, result interface{}) error {
+func (t *Transmission) makeCall(r *Request) (*Response, error) {
+	data, err := t.http.apiCall(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if t.Debug {
+		log.Printf("[DEBUG] %s", string(data))
+	}
+
+	var res Response
+	err = json.Unmarshal(data, &res)
+	if err != nil {
+		return nil, err
+	}
+
+	return &res, nil
+}
+
+func (t *Transmission) extractArgs(res *Response, result interface{}) error {
 	tmp, err := json.Marshal(res.Arguments)
 	if err != nil {
 		return err
@@ -36,26 +57,16 @@ func ReturnArguments(res Response, result interface{}) error {
 // =====================================================================================================================
 
 func (t *Transmission) SessionStats() (Statistics, error) {
-	p := &Request{
+	res, err := t.makeCall(&Request{
 		Method: "session-stats",
-	}
-
-	data, err := t.http.apiCall(p)
-	if err != nil {
-		return Statistics{}, err
-	}
-
-	//fmt.Println("[DEBUG]", string(data))
-
-	var res Response
-	err = json.Unmarshal(data, &res)
+	})
 	if err != nil {
 		return Statistics{}, err
 	}
 
 	if res.Result == "success" {
 		var r Statistics
-		err := ReturnArguments(res, &r)
+		err := t.extractArgs(res, &r)
 		if err != nil {
 			return Statistics{}, err
 		}
@@ -66,7 +77,7 @@ func (t *Transmission) SessionStats() (Statistics, error) {
 }
 
 func (t *Transmission) All() (Torrent, error) {
-	p := &Request{
+	res, err := t.makeCall(&Request{
 		Method: "torrent-get",
 		Arguments: ReqArguments{
 			Fields: FieldList(ID, Name, Status, Comment,
@@ -74,25 +85,14 @@ func (t *Transmission) All() (Torrent, error) {
 				PercentDone, Eta, SizeWhenDone, StartDate,
 				UploadRatio, TotalSize),
 		},
-		Format: "table",
-	}
-
-	data, err := t.http.apiCall(p)
-	if err != nil {
-		return Torrent{}, err
-	}
-
-	//fmt.Println("[DEBUG]", string(data))
-
-	var res Response
-	err = json.Unmarshal(data, &res)
+	})
 	if err != nil {
 		return Torrent{}, err
 	}
 
 	if res.Result == "success" {
 		var r Torrent
-		err := ReturnArguments(res, &r)
+		err := t.extractArgs(res, &r)
 		if err != nil {
 			return Torrent{}, err
 		}
@@ -103,31 +103,21 @@ func (t *Transmission) All() (Torrent, error) {
 }
 
 func (t *Transmission) ByID(ID int) (Torrent, error) {
-	p := &Request{
+	res, err := t.makeCall(&Request{
 		Method: "torrent-get",
 		Arguments: ReqArguments{
 			Fields: FieldList(Name, Status, ErrorString, AddedDate, Peers,
 				TotalSize, RateDownload, RateUpload, UploadRatio, Files),
 			IDs: []int{ID},
 		},
-	}
-
-	data, err := t.http.apiCall(p)
-	if err != nil {
-		return Torrent{}, err
-	}
-
-	//fmt.Println("[DEBUG]", string(data))
-
-	var res Response
-	err = json.Unmarshal(data, &res)
+	})
 	if err != nil {
 		return Torrent{}, err
 	}
 
 	if res.Result == "success" {
 		var r Torrent
-		err := ReturnArguments(res, &r)
+		err := t.extractArgs(res, &r)
 		if err != nil {
 			return Torrent{}, err
 		}
@@ -142,6 +132,7 @@ func (t *Transmission) ByID(ID int) (Torrent, error) {
 // =====================================================================================================================
 
 func (t *Transmission) AddFile(path string) (Added, error) {
+	// open file and encode to base64
 	f, err := os.Open(path)
 	if err != nil {
 		return Added{}, err
@@ -152,6 +143,7 @@ func (t *Transmission) AddFile(path string) (Added, error) {
 	content, _ := ioutil.ReadAll(reader)
 
 	base64Str := base64.StdEncoding.EncodeToString(content)
+	// ===
 
 	p := &Request{
 		Method: "torrent-add",
@@ -161,34 +153,25 @@ func (t *Transmission) AddFile(path string) (Added, error) {
 		},
 		Format: "table",
 	}
-
 	if t.DownloadDir != "" {
 		p.Arguments.DownloadDir = t.DownloadDir
 	}
 
-	data, err := t.http.apiCall(p)
-	if err != nil {
-		return Added{}, err
-	}
-
-	//fmt.Println("[DEBUG]", string(data))
-
-	var res Response
-	err = json.Unmarshal(data, &res)
+	res, err := t.makeCall(p)
 	if err != nil {
 		return Added{}, err
 	}
 
 	if res.Result == "success" {
 		var r Added
-		err := ReturnArguments(res, &r)
+		err := t.extractArgs(res, &r)
 		if err != nil {
 			return Added{}, err
 		}
 
 		if (Added{}) == r {
 			var d Duplicate
-			err := ReturnArguments(res, &d)
+			err := t.extractArgs(res, &d)
 			if err != nil {
 				return Added{}, err
 			}
@@ -211,34 +194,25 @@ func (t *Transmission) AddMagnet(magnetLink string) (Added, error) {
 		},
 		Format: "table",
 	}
-
 	if t.DownloadDir != "" {
 		p.Arguments.DownloadDir = t.DownloadDir
 	}
 
-	data, err := t.http.apiCall(p)
-	if err != nil {
-		return Added{}, err
-	}
-
-	//fmt.Println("[DEBUG]", string(data))
-
-	var res Response
-	err = json.Unmarshal(data, &res)
+	res, err := t.makeCall(p)
 	if err != nil {
 		return Added{}, err
 	}
 
 	if res.Result == "success" {
 		var r Added
-		err := ReturnArguments(res, &r)
+		err := t.extractArgs(res, &r)
 		if err != nil {
 			return Added{}, err
 		}
 
 		if (Added{}) == r {
 			var d Duplicate
-			err := ReturnArguments(res, &d)
+			err := t.extractArgs(res, &d)
 			if err != nil {
 				return Added{}, err
 			}
@@ -252,28 +226,22 @@ func (t *Transmission) AddMagnet(magnetLink string) (Added, error) {
 	return Added{}, fmt.Errorf("request failed")
 }
 
+// =====================================================================================================================
+// Other
+// =====================================================================================================================
+
 func (t *Transmission) Verify(ID int) error {
-	p := &Request{
+	res, err := t.makeCall(&Request{
 		Method: "torrent-verify",
 		Arguments: ReqArguments{
 			IDs: []int{ID},
 		},
-	}
-
-	data, err := t.http.apiCall(p)
+	})
 	if err != nil {
 		return err
 	}
 
-	//fmt.Println("[DEBUG]", string(data))
-
-	var result Response
-	err = json.Unmarshal(data, &result)
-	if err != nil {
-		return err
-	}
-
-	if result.Result == "success" {
+	if res.Result == "success" {
 		return nil
 	}
 
@@ -281,27 +249,17 @@ func (t *Transmission) Verify(ID int) error {
 }
 
 func (t *Transmission) Start(ID int) error {
-	p := &Request{
+	res, err := t.makeCall(&Request{
 		Method: "torrent-start",
 		Arguments: ReqArguments{
 			IDs: []int{ID},
 		},
-	}
-
-	data, err := t.http.apiCall(p)
+	})
 	if err != nil {
 		return err
 	}
 
-	//fmt.Println("[DEBUG]", string(data))
-
-	var result Response
-	err = json.Unmarshal(data, &result)
-	if err != nil {
-		return err
-	}
-
-	if result.Result == "success" {
+	if res.Result == "success" {
 		return nil
 	}
 
@@ -309,27 +267,17 @@ func (t *Transmission) Start(ID int) error {
 }
 
 func (t *Transmission) Stop(ID int) error {
-	p := &Request{
+	res, err := t.makeCall(&Request{
 		Method: "torrent-stop",
 		Arguments: ReqArguments{
 			IDs: []int{ID},
 		},
-	}
-
-	data, err := t.http.apiCall(p)
+	})
 	if err != nil {
 		return err
 	}
 
-	//fmt.Println("[DEBUG]", string(data))
-
-	var result Response
-	err = json.Unmarshal(data, &result)
-	if err != nil {
-		return err
-	}
-
-	if result.Result == "success" {
+	if res.Result == "success" {
 		return nil
 	}
 
@@ -337,28 +285,18 @@ func (t *Transmission) Stop(ID int) error {
 }
 
 func (t *Transmission) Remove(ID int, rmLocalData bool) error {
-	p := &Request{
+	res, err := t.makeCall(&Request{
 		Method: "torrent-remove",
 		Arguments: ReqArguments{
 			IDs:             []int{ID},
 			DeleteLocalData: rmLocalData,
 		},
-	}
-
-	data, err := t.http.apiCall(p)
+	})
 	if err != nil {
 		return err
 	}
 
-	//fmt.Println("[DEBUG]", string(data))
-
-	var result Response
-	err = json.Unmarshal(data, &result)
-	if err != nil {
-		return err
-	}
-
-	if result.Result == "success" {
+	if res.Result == "success" {
 		return nil
 	}
 
