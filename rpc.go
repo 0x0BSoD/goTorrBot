@@ -56,26 +56,6 @@ func (t *Transmission) extractArgs(res *Response, result interface{}) error {
 // Get
 // =====================================================================================================================
 
-func (t *Transmission) SessionStats() (Statistics, error) {
-	res, err := t.makeCall(&Request{
-		Method: "session-stats",
-	})
-	if err != nil {
-		return Statistics{}, err
-	}
-
-	if res.Result == "success" {
-		var r Statistics
-		err := t.extractArgs(res, &r)
-		if err != nil {
-			return Statistics{}, err
-		}
-		return r, err
-	}
-
-	return Statistics{}, fmt.Errorf("request failed")
-}
-
 func (t *Transmission) All() (Torrent, error) {
 	res, err := t.makeCall(&Request{
 		Method: "torrent-get",
@@ -106,8 +86,10 @@ func (t *Transmission) ByID(ID int) (Torrent, error) {
 	res, err := t.makeCall(&Request{
 		Method: "torrent-get",
 		Arguments: ReqArguments{
-			Fields: FieldList(Name, Status, ErrorString, AddedDate, Peers,
-				TotalSize, RateDownload, RateUpload, UploadRatio, Files),
+			Fields: FieldList(Name, Status, ErrorString,
+				AddedDate, Peers, IsFinished, LeftUntilDone,
+				PercentDone, Eta, TotalSize, RateDownload,
+				RateUpload, UploadRatio, Files, FileStats),
 			IDs: []int{ID},
 		},
 	})
@@ -230,6 +212,46 @@ func (t *Transmission) AddMagnet(magnetLink string) (Added, error) {
 // Other
 // =====================================================================================================================
 
+func (t *Transmission) SessionStats() (Statistics, error) {
+	res, err := t.makeCall(&Request{
+		Method: "session-stats",
+	})
+	if err != nil {
+		return Statistics{}, err
+	}
+
+	if res.Result == "success" {
+		var r Statistics
+		err := t.extractArgs(res, &r)
+		if err != nil {
+			return Statistics{}, err
+		}
+		return r, err
+	}
+
+	return Statistics{}, fmt.Errorf("request failed")
+}
+
+func (t *Transmission) SessionInfo() (Info, error) {
+	res, err := t.makeCall(&Request{
+		Method: "session-get",
+	})
+	if err != nil {
+		return Info{}, err
+	}
+
+	if res.Result == "success" {
+		var r Info
+		err := t.extractArgs(res, &r)
+		if err != nil {
+			return Info{}, err
+		}
+		return r, nil
+	}
+
+	return Info{}, fmt.Errorf("request failed")
+}
+
 func (t *Transmission) Verify(ID int) error {
 	res, err := t.makeCall(&Request{
 		Method: "torrent-verify",
@@ -291,6 +313,22 @@ func (t *Transmission) Remove(ID int, rmLocalData bool) error {
 			IDs:             []int{ID},
 			DeleteLocalData: rmLocalData,
 		},
+	})
+	if err != nil {
+		return err
+	}
+
+	if res.Result == "success" {
+		return nil
+	}
+
+	return fmt.Errorf("request failed")
+}
+
+func (t *Transmission) FreeSpace(path string) error {
+	res, err := t.makeCall(&Request{
+		Method:    "free-space",
+		Arguments: ReqArguments{Path: path},
 	})
 	if err != nil {
 		return err
