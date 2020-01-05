@@ -1,4 +1,4 @@
-package main
+package transmissionRPC
 
 import (
 	"bufio"
@@ -13,14 +13,14 @@ import (
 // https://github.com/transmission/transmission/blob/master/extras/rpc-spec.txt
 
 type Transmission struct {
-	http        *Client
+	Http        *Client
 	DownloadDir string
 	Paused      bool
 	Debug       bool
 }
 
 func (t *Transmission) makeCall(r *Request) (*Response, error) {
-	data, err := t.http.apiCall(r)
+	data, err := t.Http.apiCall(r)
 	if err != nil {
 		return nil, err
 	}
@@ -43,6 +43,8 @@ func (t *Transmission) extractArgs(res *Response, result interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("here")
 
 	err = json.Unmarshal(tmp, result)
 	if err != nil {
@@ -73,6 +75,7 @@ func (t *Transmission) All() (Torrent, error) {
 	if res.Result == "success" {
 		var r Torrent
 		err := t.extractArgs(res, &r)
+		fmt.Println(err)
 		if err != nil {
 			return Torrent{}, err
 		}

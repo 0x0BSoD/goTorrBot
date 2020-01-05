@@ -1,4 +1,4 @@
-package main
+package transmissionRPC
 
 type Field int
 

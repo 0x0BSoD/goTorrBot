@@ -1,4 +1,4 @@
-package main
+package transmissionRPC
 
 import (
 	"encoding/json"
@@ -56,12 +56,12 @@ type Torrent struct {
 		StartDate         int            `json:"startDate,omitempty"`
 		Status            int            `json:"status,omitempty"`
 		TotalSize         int            `json:"totalSize,omitempty"`
-		UploadRatio       int            `json:"uploadRatio,omitempty"`
+		UploadRatio       float64        `json:"uploadRatio,omitempty"`
 		Peers             []ArgPeers     `json:"peers,omitempty"`
 		RateDownload      int            `json:"rateDownload,omitempty"`
 		RateUpload        int            `json:"rateUpload,omitempty"`
 		Files             []ArgFiles     `json:"files,omitempty"`
-		FileStats         []ArgFileStats `json:"fileStats"`
+		FileStats         []ArgFileStats `json:"fileStats,omitempty"`
 	} `json:"torrents"`
 }
 
