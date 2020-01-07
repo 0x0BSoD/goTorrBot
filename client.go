@@ -2,17 +2,15 @@ package transmissionRPC
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"time"
 )
 
-type Client struct {
+type client struct {
 	Url      string
 	User     string
 	Password string
@@ -21,41 +19,8 @@ type Client struct {
 }
 
 // ===========================================
-// NewClient return client instance with token
-func NewClient(url, user, password string) (*Client, error) {
-	tr := &http.Transport{
-		MaxIdleConns:       10,
-		IdleConnTimeout:    30 * time.Second,
-		DisableCompression: true,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
-	client := Client{
-		Url:      url,
-		User:     user,
-		Password: password,
-		Http:     &http.Client{Transport: tr},
-	}
-
-	resp, err := client.getResponse("GET", "/", nil)
-	if err != nil {
-		return nil, fmt.Errorf("error during getting token: %s", err)
-	}
-
-	client.Token = resp.Header.Get("X-Transmission-Session-Id")
-
-	return &client, nil
-}
-
-// =====================================================================================================================
-// PUBLIC
-// =====================================================================================================================
-
-// ===========================================
 // Get - raw request, return []byte and error
-func (c *Client) Get(endpoint string) ([]byte, error) {
+func (c *client) get(endpoint string) ([]byte, error) {
 
 	resp, err := c.getResponse("GET", endpoint, nil)
 	if err != nil {
@@ -80,7 +45,7 @@ func (c *Client) Get(endpoint string) ([]byte, error) {
 
 // ===========================================
 // Post - raw request, return []byte and error
-func (c *Client) Post(endpoint string, body []byte) ([]byte, error) {
+func (c *client) post(endpoint string, body []byte) ([]byte, error) {
 
 	resp, err := c.getResponse("POST", endpoint, body)
 	if err != nil {
@@ -96,7 +61,7 @@ func (c *Client) Post(endpoint string, body []byte) ([]byte, error) {
 		c.Token = resp.Header.Get("X-Transmission-Session-Id")
 
 		// try again
-		return c.Post(endpoint, body)
+		return c.post(endpoint, body)
 	} else if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("error during post request: %s", resp.Status)
 	}
@@ -109,13 +74,9 @@ func (c *Client) Post(endpoint string, body []byte) ([]byte, error) {
 	return bodyByte, nil
 }
 
-// =====================================================================================================================
-// PRIVATE
-// =====================================================================================================================
-
 // ===========================================
 // getResponse return http.Response and error [PRIVATE]
-func (c *Client) getResponse(method, endpoint string, body []byte) (*http.Response, error) {
+func (c *client) getResponse(method, endpoint string, body []byte) (*http.Response, error) {
 	urlStr := c.Url + endpoint
 
 	// check full URL
@@ -152,13 +113,13 @@ func (c *Client) getResponse(method, endpoint string, body []byte) (*http.Respon
 	return resp, nil
 }
 
-func (c *Client) apiCall(p *Request) ([]byte, error) {
+func (c *client) apiCall(p *Request) ([]byte, error) {
 	b, err := json.Marshal(p)
 	if err != nil {
 		return []byte{}, err
 	}
 
-	data, err := c.Post("/", b)
+	data, err := c.post("/", b)
 	if err != nil {
 		return []byte{}, err
 	}

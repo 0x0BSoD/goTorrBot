@@ -1,9 +1,9 @@
 package transmissionRPC
 
-type Field int
+type GetField int
 
 const (
-	ActivityDate Field = iota
+	ActivityDate GetField = iota
 	AddedDate
 	BandwidthPriority
 	Comment
@@ -75,7 +75,7 @@ const (
 	WebseedsSendingToUs
 )
 
-func (f Field) String() string {
+func (f GetField) String() string {
 	_strings := []string{
 		"activityDate",
 		"addedDate",
@@ -156,7 +156,7 @@ func (f Field) String() string {
 	return _strings[f]
 }
 
-func FieldList(f ...Field) []string {
+func FieldList(f ...GetField) []string {
 	var tmp []string
 
 	for _, i := range f {
@@ -164,4 +164,19 @@ func FieldList(f ...Field) []string {
 	}
 
 	return tmp
+}
+
+//=====
+func TorrentStatus(ID int) string {
+	_strings := []string{
+		"Torrent is stopped",
+		"Queued to check files",
+		"Checking files",
+		"Queued to download",
+		"Downloading",
+		"Queued to seed",
+		"Seeding",
+	}
+
+	return _strings[ID]
 }
