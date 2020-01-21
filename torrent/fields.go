@@ -1,4 +1,4 @@
-package transmissionRPC
+package torrent
 
 type GetField int
 

@@ -1,4 +1,4 @@
-package transmissionRPC
+package client
 
 import (
 	"bytes"
@@ -10,17 +10,26 @@ import (
 	"net/url"
 )
 
-type client struct {
+type Client struct {
 	Url      string
 	User     string
 	Password string
 	Token    string
+	Debug    bool
 	Http     *http.Client
+}
+
+// Parameters for new client
+type Parameters struct {
+	Url      string
+	User     string
+	Password string
+	Debug    bool
 }
 
 // ===========================================
 // Get - raw request, return []byte and error
-func (c *client) get(endpoint string) ([]byte, error) {
+func (c *Client) get(endpoint string) ([]byte, error) {
 
 	resp, err := c.getResponse("GET", endpoint, nil)
 	if err != nil {
@@ -45,7 +54,7 @@ func (c *client) get(endpoint string) ([]byte, error) {
 
 // ===========================================
 // Post - raw request, return []byte and error
-func (c *client) post(endpoint string, body []byte) ([]byte, error) {
+func (c *Client) post(endpoint string, body []byte) ([]byte, error) {
 
 	resp, err := c.getResponse("POST", endpoint, body)
 	if err != nil {
@@ -76,7 +85,7 @@ func (c *client) post(endpoint string, body []byte) ([]byte, error) {
 
 // ===========================================
 // getResponse return http.Response and error [PRIVATE]
-func (c *client) getResponse(method, endpoint string, body []byte) (*http.Response, error) {
+func (c *Client) getResponse(method, endpoint string, body []byte) (*http.Response, error) {
 	urlStr := c.Url + endpoint
 
 	// check full URL
@@ -113,7 +122,39 @@ func (c *client) getResponse(method, endpoint string, body []byte) (*http.Respon
 	return resp, nil
 }
 
-func (c *client) apiCall(p *Request) ([]byte, error) {
+type Response struct {
+	Result    string                 `json:"result"`
+	Arguments map[string]interface{} `json:"arguments,omitempty"`
+	Tag       int                    `json:"tag,omitempty"`
+}
+
+//
+type Request struct {
+	Method    string       `json:"method"`
+	Arguments ReqArguments `json:"arguments,omitempty"`
+	Tag       int          `json:"tag,omitempty"`
+	Format    string       `json:"format,omitempty"`
+}
+
+type ReqArguments struct {
+	Fields            []string `json:"fields,omitempty"`
+	IDs               []int    `json:"ids,omitempty"`
+	FileName          string   `json:"filename,omitempty"`
+	DownloadDir       string   `json:"download-dir,omitempty"`
+	MetaInfo          string   `json:"metainfo,omitempty"`
+	Paused            bool     `json:"paused,omitempty"`
+	PeerLimit         int      `json:"peer-limit,omitempty"`
+	BandwidthPriority int      `json:"bandwidth-priority,omitempty"`
+	FilesWanted       []string `json:"files-wanted,omitempty"`
+	FilesUnwanted     []string `json:"files-unwanted,omitempty"`
+	PriorityHigh      []int    `json:"priority-high,omitempty"`
+	PriorityLow       []int    `json:"priority-low,omitempty"`
+	PriorityNormal    []int    `json:"priority-normal,omitempty"`
+	DeleteLocalData   bool     `json:"delete-local-data"`
+	Path              string   `json:"path"`
+}
+
+func (c *Client) ApiCall(p *Request) ([]byte, error) {
 	b, err := json.Marshal(p)
 	if err != nil {
 		return []byte{}, err

@@ -22,45 +22,6 @@ type Transmission struct {
 	Debug       bool
 }
 
-func (t *Transmission) makeCall(r *Request) (*Response, error) {
-	data, err := t.http.apiCall(r)
-	if err != nil {
-		return nil, err
-	}
-
-	if t.Debug {
-		log.Printf("[DEBUG] %s", string(data))
-	}
-
-	var res Response
-	err = json.Unmarshal(data, &res)
-	if err != nil {
-		return nil, err
-	}
-
-	return &res, nil
-}
-
-func (t *Transmission) extractArgs(res *Response, result interface{}) error {
-	tmp, err := json.Marshal(res.Arguments)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(tmp, result)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (t *Transmission) resolveStatus(torrents []*Torrent) {
-	for _, i := range torrents {
-		i.StatusString = TorrentStatus(i.Status)
-	}
-}
-
 // ===========================================
 // NewClient return client instance with token
 func NewClient(url, user, password string) (*Transmission, error) {
@@ -93,36 +54,6 @@ func NewClient(url, user, password string) (*Transmission, error) {
 // =====================================================================================================================
 // Get
 // =====================================================================================================================
-
-func (t *Transmission) All() ([]*Torrent, error) {
-	res, err := t.makeCall(&Request{
-		Method: "torrent-get",
-		Arguments: ReqArguments{
-			Fields: FieldList(ID, Name, Status, Comment,
-				Error, ErrorString, IsFinished, LeftUntilDone,
-				PercentDone, Eta, SizeWhenDone, StartDate,
-				UploadRatio, TotalSize),
-		},
-	})
-	if err != nil {
-		return []*Torrent{}, err
-	}
-
-	if res.Result == "success" {
-		var r Torrents
-		err := t.extractArgs(res, &r)
-		if err != nil {
-			return []*Torrent{}, err
-		}
-		if len(r.Torrents) == 0 {
-			return r.Torrents, fmt.Errorf("no torrents")
-		}
-		t.resolveStatus(r.Torrents)
-		return r.Torrents, nil
-	}
-
-	return []*Torrent{}, fmt.Errorf("request failed")
-}
 
 func (t *Transmission) ByID(ID int) ([]*Torrent, error) {
 	res, err := t.makeCall(&Request{
@@ -387,79 +318,6 @@ func (t *Transmission) SessionInfo() (Info, error) {
 	}
 
 	return Info{}, fmt.Errorf("request failed")
-}
-
-func (t *Transmission) Verify(ID int) error {
-	res, err := t.makeCall(&Request{
-		Method: "torrent-verify",
-		Arguments: ReqArguments{
-			IDs: []int{ID},
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	if res.Result == "success" {
-		return nil
-	}
-
-	return fmt.Errorf("request failed")
-}
-
-func (t *Transmission) Start(ID int) error {
-	res, err := t.makeCall(&Request{
-		Method: "torrent-start",
-		Arguments: ReqArguments{
-			IDs: []int{ID},
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	if res.Result == "success" {
-		return nil
-	}
-
-	return fmt.Errorf("request failed")
-}
-
-func (t *Transmission) Stop(ID int) error {
-	res, err := t.makeCall(&Request{
-		Method: "torrent-stop",
-		Arguments: ReqArguments{
-			IDs: []int{ID},
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	if res.Result == "success" {
-		return nil
-	}
-
-	return fmt.Errorf("request failed")
-}
-
-func (t *Transmission) Remove(ID int, rmLocalData bool) error {
-	res, err := t.makeCall(&Request{
-		Method: "torrent-remove",
-		Arguments: ReqArguments{
-			IDs:             []int{ID},
-			DeleteLocalData: rmLocalData,
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	if res.Result == "success" {
-		return nil
-	}
-
-	return fmt.Errorf("request failed")
 }
 
 func (t *Transmission) FreeSpace(path string) error {
